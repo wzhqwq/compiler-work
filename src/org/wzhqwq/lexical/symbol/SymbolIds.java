@@ -1,0 +1,39 @@
+package org.wzhqwq.lexical.symbol;
+
+public enum SymbolIds {
+    PROGRAM_KEYWORD,
+    CONST_KEYWORD,
+    VAR_KEYWORD,
+    PROCEDURE_KEYWORD,
+    BEGIN_KEYWORD,
+    END_KEYWORD,
+    IF_KEYWORD,
+    THEN_KEYWORD,
+    ELSE_KEYWORD,
+    CALL_KEYWORD,
+    WHILE_KEYWORD,
+    DO_KEYWORD,
+    READ_KEYWORD,
+    WRITE_KEYWORD,
+
+    PLUS,
+    MINUS,
+    MULTIPLY,
+    DIVIDE,
+    EQUAL,
+    NOT_EQUAL,
+    LESS,
+    LESS_EQUAL,
+    GREATER,
+    GREATER_EQUAL,
+    ASSIGN,
+
+    SEMICOLON,
+    COMMA,
+    BRACKET_LEFT,
+    BRACKET_RIGHT,
+    DOT,
+
+    IDENTIFIER,
+    NUMBER,
+}
