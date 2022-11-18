@@ -1,14 +1,16 @@
 package org.wzhqwq.lexical.symbol;
 
-public class IdentifierSymbol extends Symbol {
-    private final int index;
+import org.wzhqwq.enums.SymbolIds;
 
-    public IdentifierSymbol(int index, int left, int right) {
-        super(SymbolIds.IDENTIFIER.ordinal(), "IDENT", left, right);
-        this.index = index;
+public class IdentifierSymbol extends TerminalSymbol {
+    private final String identifierName;
+
+    public IdentifierSymbol(String name, int left, int right) {
+        super(SymbolIds.IDENTIFIER, "IDENT", left, right);
+        this.identifierName = name;
     }
 
-    public int getIndex() {
-        return index;
+    public String getIdentifierName() {
+        return identifierName;
     }
 }

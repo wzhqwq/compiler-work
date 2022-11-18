@@ -1,0 +1,167 @@
+M -> EPSILON {
+  M.nextPtr = getCodePtr()
+}
+
+program -> programBody DOT {
+  no action
+}
+programBody -> constDeclaration varDeclaration procedureList statement {
+  fill(statement.nextList, getCodePtr())
+  pushCode(OPR, 0, EXIT)
+  leaveProcedure()
+}
+
+constDeclaration -> CONST constDefinitionsPart1 SEMICOLON | EPSILON {
+  no action
+}
+constDefinitionsPart1 -> constDefinition constDefinitionsPart2 {
+  no action
+}
+constDefinitionsPart2 -> COMMA constDefinitionsPart1 | EPSILON {
+  no action
+}
+constDefinition -> IDENTIFIER EQUAL NUMBER {
+  addConstant(IDENTIFIER.name, NUMBER.value)
+}
+
+varDeclaration -> VAR identifiersPart1 SEMICOLON {
+  pushCode(INT, 0, identifiers.count + 3)
+  for identifier in identifiers
+    addVariable(identifier.name)
+} | EPSILON {
+  pushCode(INT, 0, 3)
+}
+identifiersPart1 -> IDENTIFIER identifiersPart2 {
+  identifiers.push(IDENTIFIER)
+}
+identifiersPart2 -> COMMA identifiersPart1 | EPSILON {
+  no action
+}
+
+proceduresPart1 -> procedureHead programBody SEMICOLON proceduresPart2 | EPSILON {
+  no action
+}
+proceduresPart2 -> proceduresPart1 | EPSILON {
+  no action
+}
+procedureHead -> PROCEDURE IDENTIFIER SEMICOLON {
+  row = findRow(IDENTIFIER.name)
+  if row.type == PROCEDURE  enterProcedure(IDENTIFIER.name, getCodePtr())
+  else                      throw error
+}
+
+condition -> expression relational expression {
+  pushCode(OPR, 0, relational.variant)
+  condition.falseList = pushCode(JPC, 0)
+  condition.trueList = pushCode(JMP, 0)
+} | ODD expression {
+  pushCode(OPR, 0, ODD)
+  condition.falseList = pushCode(JPC, 0)
+  condition.trueList = pushCode(JMP, 0)
+}
+relational -> RELATIONAL {
+  relational.variant = RELATIONAL.variant
+} | EQUAL {
+  relational.variant = EQUAL
+}
+
+expression -> sign termsPart1 {
+  pushCode(LIT, 0, 0)
+  pushCode(OPR, 0, sign.variant)
+}
+termsPart1 -> term termsPart2 {
+  no action
+}
+termsPart2 -> ARITHMETIC_L1 termsPart1 {
+  pushCode(OPR, 0, ARITHMETIC_L1.variant)
+} | EPSILON {
+  no action
+}
+sign -> ARITHMETIC_L1 {
+  sign.variant = ARITHMETIC_L1.variant
+} | EPSILON {
+  sign.variant = NONE
+}
+
+term -> factor factorsPart {
+  no action
+}
+factorsPart -> ARITHMETIC_L2 term {
+  pushCode(OPR, 0, ARITHMETIC_L2.variant)
+} | EPSILON {
+  no action
+}
+factor -> IDENTIFIER {
+  row = findRow(IDENTIFIER.name)
+  if row.type == CONSTANT   pushCode(LIT, 0, row.value)
+  if row.type == VARIABLE   pushCode(LOD, getLevel() - row.level, row.address)
+  if row.type == PROCEDURE  throw error
+} | NUMBER {
+  pushCode(LIT, 0, NUMBER.value)
+} | BRACKET_LEFT expression BRACKET_RIGHT {
+  no action
+}
+
+statement -> assignStatement | ifStatement | whileStatement | callStatement | readStatement | writeStatement | compoundStatement {
+  statement.nextList = ?.nextList
+} | EPSILON {
+  statement.nextList = []
+}
+
+statementsPart1 -> statement statementsPart2 {
+  if statementsPart2.nextPtr == -1
+    statementsPart1.nextList = statement.nextList
+  else
+    fill(statement.nextList, statementsPart2.nextPtr)
+    statementsPart1.nextList = statementsPart2.nextList
+}
+statementsPart2 -> SEMICOLON M statementsPart1 {
+  statementsPart2.nextPtr = M.nextPtr
+  statementsPart2.nextList = statementsPart1.nextList
+} | EPSILON {
+  statementsPart2.nextPtr = -1
+  statementsPart2.nextList = []
+}
+
+assignStatement -> IDENTIFIER ASSIGN expression {
+  statement.nextList = []
+  row = findRow(IDENTIFIER.name)
+  if row.type == VARIABLE   pushCode(STO, getLevel() - row.level, row.address)
+  else                      throw error
+}
+compoundStatement -> BEGIN statementsPart1 END {
+  statement.nextList = statementsPart1.nextList
+}
+ifStatement -> IF condition THEN M statement {
+  fill(condition.trueList, M.nextPtr)
+  ifStatement.nextList = merge(condition.falseList, statement.nextList)
+}
+whileStatement -> WHILE M1 condition do M2 statement {
+  fill(condition.trueList, M2.nextPtr)
+  fill(statement.nextList, M1.nextPtr)
+  whileStatement.nextList = merge(condition.falseList, pushCode(JMP, 0))
+}
+callStatement -> CALL IDENTIFIER {
+  callStatement.nextList = []
+  row = findRow(IDENTIFIER.name)
+  if row.type == PROCEDURE  pushCode(CAL, getLevel(), row.address)
+  else                      throw error
+}
+
+readStatement -> READ BRACKET_LEFT identifiersPart1 BRACKET_RIGHT {
+  readStatement.nextList = []
+  for identifier in identifiers
+    pushCode(OPR, 0, READ)
+    row = findRow(identifier.name)
+    if row.type == VARIABLE   pushCode(STO, getLevel() - row.level, row.address)
+    else                      throw error
+}
+
+writeStatement -> WRITE BRACKET_LEFT identifiersPart1 BRACKET_RIGHT {
+  writeStatement.nextList = []
+  for identifier in identifiers
+    row = findRow(identifier.name)
+    if row.type == VARIABLE   pushCode(LOD, getLevel() - row.level, row.address)
+    else                      throw error
+    pushCode(OPR, 0, WRITE)
+}

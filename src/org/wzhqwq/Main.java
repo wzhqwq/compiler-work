@@ -3,7 +3,7 @@ package org.wzhqwq;
 import org.wzhqwq.exception.LexicalException;
 import org.wzhqwq.exception.PositionedException;
 import org.wzhqwq.lexical.LexicalParser;
-import org.wzhqwq.lexical.symbol.Symbol;
+import org.wzhqwq.enums.Symbol;
 import org.wzhqwq.util.CodeBuffer;
 
 import java.util.Arrays;

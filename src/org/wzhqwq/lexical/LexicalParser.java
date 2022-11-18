@@ -1,10 +1,13 @@
 package org.wzhqwq.lexical;
 
 import org.wzhqwq.exception.LexicalException;
-import org.wzhqwq.lexical.matcher.*;
+import org.wzhqwq.lexical.dfa.*;
 import org.wzhqwq.lexical.symbol.IdentifierSymbol;
 import org.wzhqwq.lexical.symbol.NumberSymbol;
-import org.wzhqwq.lexical.symbol.Symbol;
+import org.wzhqwq.lexical.symbol.TerminalSymbol;
+import org.wzhqwq.lexical.trie.DelimiterMatcher;
+import org.wzhqwq.lexical.trie.KeywordMatcher;
+import org.wzhqwq.lexical.trie.OperatorMatcher;
 import org.wzhqwq.util.CodeBuffer;
 
 import java.util.ArrayList;
@@ -22,18 +25,18 @@ public class LexicalParser {
     }
 
     public static class ParseResult {
-        public final Symbol[] SYM;
+        public final TerminalSymbol[] SYM;
         public final String[] ID;
         public final Number[] NUM;
 
-        public ParseResult(Symbol[] SYM, String[] ID, Number[] NUM) {
+        public ParseResult(TerminalSymbol[] SYM, String[] ID, Number[] NUM) {
             this.SYM = SYM;
             this.ID = ID;
             this.NUM = NUM;
         }
     }
 
-    private Symbol round() throws LexicalException {
+    private TerminalSymbol round() throws LexicalException {
         StringBuilder batch = new StringBuilder();
         List<DFAMatcher> possibleMatcher = new ArrayList<>(List.of(new DFAMatcher[]{
                 new IdentifierMatcher(),
@@ -54,18 +57,18 @@ public class LexicalParser {
             batch.append(buffer.readChar());
         }
         if (matched instanceof IdentifierMatcher) {
-            Symbol keywordSymbol = keywordMatcher.toSym(batch.toString(), buffer.getPosition());
+            TerminalSymbol keywordSymbol = keywordMatcher.toSym(batch.toString(), buffer.getPosition());
             if (keywordSymbol != null) {
                 return keywordSymbol;
             }
             identifiers.add(batch.toString());
-            return new IdentifierSymbol(identifiers.size() - 1, buffer.getPosition() - batch.length() + 1, buffer.getPosition());
+            return new IdentifierSymbol(batch.toString(), buffer.getPosition() - batch.length() + 1, buffer.getPosition());
         } else if (matched instanceof NumberMatcher) {
             int number = Integer.parseInt(batch.toString());
             numbers.add(number);
             return new NumberSymbol(number, buffer.getPosition() - batch.length() + 1, buffer.getPosition());
         } else if (matched instanceof CharacterMatcher) {
-            Symbol result = (new OperatorMatcher()).toSym(batch.toString(), buffer.getPosition());
+            TerminalSymbol result = (new OperatorMatcher()).toSym(batch.toString(), buffer.getPosition());
             if (result != null) {
                 return result;
             }
@@ -85,7 +88,7 @@ public class LexicalParser {
         numbers.clear();
         identifiers.clear();
 
-        ArrayList<Symbol> symbols = new ArrayList<>();
+        ArrayList<TerminalSymbol> symbols = new ArrayList<>();
 
         trimSpace();
 
@@ -94,7 +97,7 @@ public class LexicalParser {
             trimSpace();
         }
         return new ParseResult(
-                symbols.toArray(new Symbol[0]),
+                symbols.toArray(new TerminalSymbol[0]),
                 identifiers.toArray(new String[0]),
                 numbers.toArray(new Integer[0])
         );
