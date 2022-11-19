@@ -4,6 +4,7 @@ import org.wzhqwq.syntax.production.literal.LiteralNonTerminalSymbol;
 import org.wzhqwq.syntax.production.literal.LiteralSymbol;
 import org.wzhqwq.syntax.production.literal.LiteralTerminalSymbol;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -31,15 +32,13 @@ public class Production {
                 }
                 else {
                     LiteralSymbol next = right[i + 1];
-                    if (next instanceof LiteralTerminalSymbol) {
-                        ((LiteralNonTerminalSymbol) now).addFollowSet((LiteralTerminalSymbol) next);
-                    } else {
-                        Set<LiteralTerminalSymbol> firstSet = ((LiteralNonTerminalSymbol) next).getFirstSet();
-                        ((LiteralNonTerminalSymbol) now).addFollowSet(firstSet);
-                        if (firstSet.contains(LiteralTerminalSymbol.EPSILON)) {
-                            ((LiteralNonTerminalSymbol) now).addFollowSetDependency(left);
-                        }
+                    LiteralNonTerminalSymbol nonTerminalNow = (LiteralNonTerminalSymbol) now;
+                    Set<LiteralTerminalSymbol> firstSetOfNext = new HashSet<>(next.getFirstSet());
+                    if (firstSetOfNext.contains(LiteralTerminalSymbol.EPSILON)) {
+                        firstSetOfNext.remove(LiteralTerminalSymbol.EPSILON);
+                        nonTerminalNow.addFollowSetDependency(left);
                     }
+                    nonTerminalNow.addFollowSet(firstSetOfNext);
                 }
             }
         }
@@ -54,20 +53,12 @@ public class Production {
     public Set<LiteralTerminalSymbol> getFirstSetOfRight() {
         Set<LiteralTerminalSymbol> firstSet = new HashSet<>();
         for (LiteralSymbol symbol : right) {
-            if (symbol instanceof LiteralTerminalSymbol) {
-                firstSet.add((LiteralTerminalSymbol) symbol);
+            Set<LiteralTerminalSymbol> symbolFirstSet = symbol.getFirstSet();
+            firstSet.addAll(symbolFirstSet);
+            if (!symbolFirstSet.contains(LiteralTerminalSymbol.EPSILON)) {
                 // 到这里结束了，ε也就不会出现在first集中了
                 firstSet.remove(LiteralTerminalSymbol.EPSILON);
                 break;
-            }
-            else {
-                Set<LiteralTerminalSymbol> t = ((LiteralNonTerminalSymbol) symbol).getFirstSet();
-                firstSet.addAll(t);
-                if (!t.contains(LiteralTerminalSymbol.EPSILON)) {
-                    // 到这里结束了，ε也就不会出现在first集中了
-                    firstSet.remove(LiteralTerminalSymbol.EPSILON);
-                    break;
-                }
             }
         }
         return firstSet;
@@ -83,5 +74,13 @@ public class Production {
             }
         }
         return selectSet;
+    }
+
+    @Override
+    public String toString() {
+        return left + " -> " + String.join(" ", Arrays.stream(right)
+                .map(LiteralSymbol::toString)
+                .toArray(String[]::new)
+        );
     }
 }

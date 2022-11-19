@@ -2,7 +2,9 @@ package org.wzhqwq.syntax.production.literal;
 
 import org.wzhqwq.enums.SymbolIds;
 
-public class LiteralSymbol {
+import java.util.Set;
+
+abstract public class LiteralSymbol {
     protected final SymbolIds id;
 
     public LiteralSymbol(SymbolIds id) {
@@ -12,4 +14,11 @@ public class LiteralSymbol {
     public SymbolIds getId() {
         return id;
     }
+
+    @Override
+    public String toString() {
+        return id.toString();
+    }
+
+    abstract public Set<LiteralTerminalSymbol> getFirstSet();
 }

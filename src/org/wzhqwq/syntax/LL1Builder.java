@@ -22,7 +22,21 @@ public class LL1Builder {
     }
 
     public LL1Predictor build() {
+        // 初始化first集（间接计算）和follow集
+        // 开始符号的follow集包含结束标记
+        rootProduction.getLeft().addFollowSet(new LiteralTerminalSymbol(SymbolIds.EOF));
+        // 在所有产生式右侧推导follow集，其中非终结符前方可能是epsilon，需要加入到依赖集合中，以便迭代计算
+        for (LiteralNonTerminalSymbol symbol : nonTerminalSymbols) {
+            for (Production production : symbol.getProductions()) {
+                production.deriveFollowSetsOfRight();
+            }
+        }
+        // 迭代计算follow集
         deriveAllFollowSet();
+
+        for (LiteralNonTerminalSymbol symbol : nonTerminalSymbols) {
+            symbol.print();
+        }
         Map<SymbolIds, Map<SymbolIds, Production> > table = new HashMap<>();
         for (LiteralNonTerminalSymbol symbol : nonTerminalSymbols) {
             Map<SymbolIds, Production> map = new HashMap<>();
@@ -58,10 +72,10 @@ public class LL1Builder {
             stack.push(new ASTNode(rootProduction));
         }
 
-        public boolean go(TerminalSymbol symbol, ParsingEnv env) throws SyntaxException {
+        public void go(TerminalSymbol symbol, ParsingEnv env) throws SyntaxException {
             if (stack.isEmpty()) {
                 if (symbol.id == SymbolIds.EOF) {
-                    return true;
+                    return;
                 }
                 throw new SyntaxException("预期代码已经结束，存在程序外的代码", symbol.left, symbol.right);
             }
@@ -90,8 +104,6 @@ public class LL1Builder {
                 node = stack.pop();
                 node.addChild(left);
             }
-
-            return false;
         }
     }
 }

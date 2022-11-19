@@ -19,7 +19,6 @@ public class LiteralNonTerminalSymbol extends LiteralSymbol {
 
     public Production addProduction(LiteralSymbol[] right, ProductionProcess processes) {
         Production production = new Production(this, right, processes);
-        production.deriveFollowSetsOfRight();
         productions.add(production);
         return production;
     }
@@ -30,6 +29,7 @@ public class LiteralNonTerminalSymbol extends LiteralSymbol {
         return productions;
     }
 
+    @Override
     public Set<LiteralTerminalSymbol> getFirstSet() {
         if (firstSet == null) {
             firstSet = new HashSet<>();
@@ -68,5 +68,16 @@ public class LiteralNonTerminalSymbol extends LiteralSymbol {
     }
     public String getMismatchMessage(SymbolIds symbolId) {
         return null;
+    }
+
+    public void print() {
+        System.out.println(id + ":");
+        System.out.println("\tFirst set: " + getFirstSet());
+        System.out.println("\tFollow set: " + getFollowSet());
+        System.out.println("\tProductions:");
+        for (Production production : productions) {
+            System.out.println("\t\t" + production);
+        }
+        System.out.println();
     }
 }

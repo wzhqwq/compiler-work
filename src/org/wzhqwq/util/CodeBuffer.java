@@ -31,7 +31,7 @@ public class CodeBuffer {
             }
         }
         return code.split("\n")[line - 1] + "\n" +
-                " ".repeat(Math.max(0, column - 1)) + "^".repeat(Math.max(0, r - l + 1)) + '\n' +
+                " ".repeat(Math.max(0, column - 1)) + "~".repeat(Math.max(0, r - l + 1)) + '\n' +
                 "在第" + line + "行第" + column + "列" + '\n';
     }
 }
