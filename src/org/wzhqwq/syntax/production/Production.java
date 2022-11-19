@@ -26,19 +26,17 @@ public class Production {
     public void deriveFollowSetsOfRight() {
         for (int i = 0; i < right.length; i++) {
             if (right[i] instanceof LiteralNonTerminalSymbol) {
-                LiteralSymbol now = right[i];
+                LiteralNonTerminalSymbol now = (LiteralNonTerminalSymbol) right[i];
                 if (i == right.length - 1) {
-                    ((LiteralNonTerminalSymbol) now).addFollowSetDependency(left);
+                    now.addFollowSetDependency(left);
                 }
                 else {
-                    LiteralSymbol next = right[i + 1];
-                    LiteralNonTerminalSymbol nonTerminalNow = (LiteralNonTerminalSymbol) now;
-                    Set<LiteralTerminalSymbol> firstSetOfNext = new HashSet<>(next.getFirstSet());
+                    Set<LiteralTerminalSymbol> firstSetOfNext = new HashSet<>(getFirstSetOfSuffix(i + 1));
                     if (firstSetOfNext.contains(LiteralTerminalSymbol.EPSILON)) {
                         firstSetOfNext.remove(LiteralTerminalSymbol.EPSILON);
-                        nonTerminalNow.addFollowSetDependency(left);
+                        now.addFollowSetDependency(left);
                     }
-                    nonTerminalNow.addFollowSet(firstSetOfNext);
+                    now.addFollowSet(firstSetOfNext);
                 }
             }
         }
@@ -51,9 +49,12 @@ public class Production {
         return right;
     }
     public Set<LiteralTerminalSymbol> getFirstSetOfRight() {
+        return getFirstSetOfSuffix(0);
+    }
+    private Set<LiteralTerminalSymbol> getFirstSetOfSuffix(int start) {
         Set<LiteralTerminalSymbol> firstSet = new HashSet<>();
-        for (LiteralSymbol symbol : right) {
-            Set<LiteralTerminalSymbol> symbolFirstSet = symbol.getFirstSet();
+        for (int i = start; i < right.length; i++) {
+            Set<LiteralTerminalSymbol> symbolFirstSet = right[i].getFirstSet();
             firstSet.addAll(symbolFirstSet);
             if (!symbolFirstSet.contains(LiteralTerminalSymbol.EPSILON)) {
                 // 到这里结束了，ε也就不会出现在first集中了
