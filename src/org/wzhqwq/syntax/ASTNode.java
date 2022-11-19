@@ -20,9 +20,9 @@ public class ASTNode {
 
     public LiteralSymbol goForward(TerminalSymbol symbol) {
         if (index == 0) {
-            left = symbol.getLeft();
+            left = symbol.left;
         }
-        right = symbol.getRight();
+        right = symbol.right;
         return production.getRight()[index++];
     }
 

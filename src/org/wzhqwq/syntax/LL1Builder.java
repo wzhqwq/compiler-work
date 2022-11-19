@@ -60,25 +60,25 @@ public class LL1Builder {
 
         public boolean go(TerminalSymbol symbol, ParsingEnv env) throws SyntaxException {
             if (stack.isEmpty()) {
-                if (symbol.getId() == SymbolIds.EOF) {
+                if (symbol.id == SymbolIds.EOF) {
                     return true;
                 }
-                throw new SyntaxException("预期代码已经结束，存在程序外的代码", symbol.getLeft(), symbol.getRight());
+                throw new SyntaxException("预期代码已经结束，存在程序外的代码", symbol.left, symbol.right);
             }
             ASTNode node = stack.peek();
             LiteralSymbol nowSymbol = node.goForward(symbol);
             while (true) {
                 if (nowSymbol instanceof LiteralTerminalSymbol) {
-                    if (nowSymbol.getId() != symbol.getId()) {
-                        throw node.getMismatchException("没有意料到的符号: " + symbol.getName());
+                    if (nowSymbol.getId() != symbol.id) {
+                        throw node.getMismatchException("没有意料到的符号: " + symbol.name);
                     }
                     node.addChild(symbol);
                     break;
                 } else {
                     LiteralNonTerminalSymbol nonTerminalTop = (LiteralNonTerminalSymbol) nowSymbol;
-                    Production production = table.get(nonTerminalTop.getId()).get(symbol.getId());
+                    Production production = table.get(nonTerminalTop.getId()).get(symbol.id);
                     if (production == null) {
-                        throw node.getMismatchException(nonTerminalTop.getMismatchMessage(symbol.getId()));
+                        throw node.getMismatchException(nonTerminalTop.getMismatchMessage(symbol.id));
                     }
                     node = new ASTNode(production);
                     stack.push(node);

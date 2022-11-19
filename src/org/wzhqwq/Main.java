@@ -2,15 +2,17 @@ package org.wzhqwq;
 
 import org.wzhqwq.exception.LexicalException;
 import org.wzhqwq.exception.PositionedException;
+import org.wzhqwq.exception.SyntaxException;
 import org.wzhqwq.lexical.LexicalParser;
 import org.wzhqwq.enums.Symbol;
+import org.wzhqwq.syntax.parser.SyntaxParser;
 import org.wzhqwq.util.CodeBuffer;
 
-import java.util.Arrays;
 import java.util.Scanner;
 
 public class Main {
     private static LexicalParser.ParseResult lexicalResult;
+    private static SyntaxParser.ParseResult syntaxResult;
     private static CodeBuffer codeBuffer;
 
     public static void main(String[] args) {
@@ -23,6 +25,7 @@ public class Main {
 
         try {
             GETSYM();
+            BLOCK();
         }
         catch (Exception e) {
             System.out.println("编译失败：");
@@ -39,11 +42,11 @@ public class Main {
         lexicalResult = new LexicalParser(codeBuffer).parse();
         System.out.println("--------------------词法分析结果--------------------");
         System.out.println("SYM:");
-        printTable(Arrays.stream(lexicalResult.SYM).map(Symbol::toString).toArray(String[]::new));
+        printTable(lexicalResult.SYM.stream().map(Symbol::toString).toArray(String[]::new));
         System.out.println("\nID:");
-        printTable(lexicalResult.ID);
+        printTable(lexicalResult.ID.toArray(String[]::new));
         System.out.println("\nNUM");
-        printTable(Arrays.stream(lexicalResult.NUM).map(Number::toString).toArray(String[]::new));
+        printTable(lexicalResult.NUM.stream().map(Number::toString).toArray(String[]::new));
         System.out.println("--------------------------------------------------");
     }
 
@@ -63,5 +66,15 @@ public class Main {
                 System.out.println();
             }
         }
+    }
+
+    private static void BLOCK() throws SyntaxException {
+        syntaxResult = new SyntaxParser().parse(lexicalResult.SYM);
+        System.out.println("--------------------语法分析结果--------------------");
+        System.out.println("TABLE:");
+        syntaxResult.table.forEach(System.out::println);
+        System.out.println("\nCODE:");
+        syntaxResult.codeList.forEach(System.out::println);
+        System.out.println("--------------------------------------------------");
     }
 }

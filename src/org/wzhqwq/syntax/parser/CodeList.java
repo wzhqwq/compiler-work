@@ -1,6 +1,7 @@
 package org.wzhqwq.syntax.parser;
 
 import org.wzhqwq.enums.Instructions;
+import org.wzhqwq.enums.OperationTypes;
 
 import java.util.List;
 
@@ -15,16 +16,23 @@ public class CodeList {
             this.level = level;
             this.address = address;
         }
+
+        @Override
+        public String toString() {
+            return String.format("%s | %-3d | %d", instruction, level, address);
+        }
     }
 
-    private List<Code> codeList;
+    public final List<Code> codeList = new java.util.ArrayList<>();
 
     public void pushCode(Instructions instruction, int level, int address) {
         codeList.add(new Code(instruction, level, address));
-
     }
-    public int[] pushCode(Instructions instruction, int level) {
-        codeList.add(new Code(instruction, level, 0));
+    public void pushOpr(OperationTypes opr) {
+        pushCode(Instructions.OPR, 0, opr.ordinal());
+    }
+    public int[] pushPartialCode(Instructions instruction) {
+        pushCode(instruction, 0, 0);
         return new int[]{ getCodePtr() - 1 };
     }
     public int getCodePtr() {

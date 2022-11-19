@@ -1,5 +1,6 @@
 package org.wzhqwq.syntax.parser;
 
+import java.util.List;
 import java.util.Map;
 
 public class Table {
@@ -11,6 +12,11 @@ public class Table {
             this.name = name;
             this.type = type;
         }
+
+        @Override
+        public String toString() {
+            return String.format("Name: %-5s | Kind: %-10s", name, type);
+        }
     }
     public static class ConstantRow extends Row {
         final int value;
@@ -18,6 +24,11 @@ public class Table {
         public ConstantRow(String name, int value) {
             super(name, TableRowType.CONSTANT);
             this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return super.toString() + String.format(" | Value: %d", value);
         }
     }
     public static class VariableRow extends Row {
@@ -29,6 +40,12 @@ public class Table {
             this.level = level;
             this.address = address;
         }
+
+        @Override
+        public String toString() {
+            return super.toString() +
+                    String.format(" | Level: %-5d | Address: DX + %d", level, address);
+        }
     }
     public static class ProcedureRow extends Row {
         final int level;
@@ -39,22 +56,34 @@ public class Table {
             this.level = level;
             this.address = address;
         }
+
+        @Override
+        public String toString() {
+            return super.toString() +
+                    String.format(" | Level: %-5d | Address: %d", level, address) +
+                    "-".repeat(20);
+        }
     }
 
     private final Map<String, Row> rows = new java.util.HashMap<>();
+    public final List<Row> table = new java.util.ArrayList<>();
     private int level = 0;
     private int address = 0;
 
     public void addConstant(String name, int value) {
-        rows.put(name, new ConstantRow(name, value));
+        putRow(new ConstantRow(name, value));
     }
     public void addVariable(String name) {
-        rows.put(name, new VariableRow(name, level, address++));
+        putRow(new VariableRow(name, level, address++));
     }
     public void enterProcedure(String name, int startAddress) {
-        rows.put(name, new ProcedureRow(name, level, startAddress));
+        putRow(new ProcedureRow(name, level, startAddress));
         level++;
         address = 3;
+    }
+    private void putRow(Row row) {
+        table.add(row);
+        rows.put(row.name, row);
     }
     public void leaveProcedure() {
         level--;

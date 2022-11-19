@@ -25,11 +25,11 @@ public class LexicalParser {
     }
 
     public static class ParseResult {
-        public final TerminalSymbol[] SYM;
-        public final String[] ID;
-        public final Number[] NUM;
+        public final List<TerminalSymbol> SYM;
+        public final List<String> ID;
+        public final List<Integer> NUM;
 
-        public ParseResult(TerminalSymbol[] SYM, String[] ID, Number[] NUM) {
+        public ParseResult(List<TerminalSymbol> SYM, List<String> ID, List<Integer> NUM) {
             this.SYM = SYM;
             this.ID = ID;
             this.NUM = NUM;
@@ -96,11 +96,7 @@ public class LexicalParser {
             symbols.add(round());
             trimSpace();
         }
-        return new ParseResult(
-                symbols.toArray(new TerminalSymbol[0]),
-                identifiers.toArray(new String[0]),
-                numbers.toArray(new Integer[0])
-        );
+        return new ParseResult(symbols, identifiers, numbers);
     }
 }
 

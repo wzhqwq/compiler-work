@@ -7,6 +7,7 @@ public enum OperationTypes {
     MINUS,
     MULTIPLY,
     DIVIDE,
+    EQUAL,
     NOT_EQUAL,
     LESS,
     LESS_EQUAL,
