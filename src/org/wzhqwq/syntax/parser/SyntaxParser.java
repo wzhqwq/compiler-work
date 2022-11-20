@@ -211,7 +211,7 @@ public class SyntaxParser {
                 (left, right, env) -> {
                     env.codeList.pushCode(Instructions.INT, 0, env.identifiers.size() + 3);
                     for (IdentifierSymbol identifier : env.identifiers) {
-                        env.table.addVariable(identifier.name);
+                        env.table.addVariable(identifier.identifierName);
                     }
                 }
         );
@@ -245,7 +245,7 @@ public class SyntaxParser {
         condition.addProduction(
                 new LiteralSymbol[]{ expression, relational, expression },
                 (left, right, env) -> {
-                    env.codeList.pushOpr(((OperatorSymbol) right[1]).variant);
+                    env.codeList.pushOpr(((OperationSymbol) right[1]).variant);
                     ((ConditionSymbol) left).falseList = env.codeList.pushPartialCode(Instructions.JPC);
                     ((ConditionSymbol) left).trueList = env.codeList.pushPartialCode(Instructions.JMP);
                 }
@@ -260,7 +260,7 @@ public class SyntaxParser {
         );
         relational.addProduction(
                 new LiteralSymbol[]{ RELATIONAL },
-                (left, right, env) -> ((OperationSymbol) left).variant = ((OperationSymbol) right[0]).variant
+                (left, right, env) -> ((OperationSymbol) left).variant = ((OperatorSymbol) right[0]).variant
         );
         relational.addProduction(
                 new LiteralSymbol[]{ EQUAL },
@@ -278,7 +278,7 @@ public class SyntaxParser {
         );
         sign.addProduction(
                 new LiteralSymbol[]{ ARITHMETIC_L1 },
-                (left, right, env) -> ((OperationSymbol) left).variant = ((OperationSymbol) right[0]).variant
+                (left, right, env) -> ((OperationSymbol) left).variant = ((OperatorSymbol) right[0]).variant
         );
         sign.addProduction(
                 new LiteralSymbol[]{ EPSILON },
@@ -288,14 +288,14 @@ public class SyntaxParser {
         termsPart1.addProduction(new LiteralSymbol[]{ term, termsPart2 });
         termsPart2.addProduction(
                 new LiteralSymbol[]{ ARITHMETIC_L1, termsPart1 },
-                (left, right, env) -> env.codeList.pushOpr(((OperationSymbol) right[0]).variant)
+                (left, right, env) -> env.codeList.pushOpr(((OperatorSymbol) right[0]).variant)
         );
         termsPart2.addProduction(new LiteralSymbol[]{ EPSILON });
         term.addProduction(new LiteralSymbol[]{ factor, factorsPart });
 
         factorsPart.addProduction(
                 new LiteralSymbol[]{ ARITHMETIC_L2, term },
-                (left, right, env) -> env.codeList.pushOpr(((OperationSymbol) right[0]).variant)
+                (left, right, env) -> env.codeList.pushOpr(((OperatorSymbol) right[0]).variant)
         );
         factorsPart.addProduction(new LiteralSymbol[]{ EPSILON });
         factor.addProduction(
@@ -303,6 +303,7 @@ public class SyntaxParser {
                 (left, right, env) -> {
                     IdentifierSymbol identifier = ((IdentifierSymbol) right[0]);
                     Table.Row row = env.table.findRow(identifier.identifierName);
+                    if (row == null) throw new SyntaxException("标识符不存在：" + identifier.identifierName, identifier.left, identifier.right);
                     switch (row.type) {
                         case CONSTANT -> env.codeList.pushCode(
                                 Instructions.LIT,
@@ -330,6 +331,7 @@ public class SyntaxParser {
                 (left, right, env) -> {
                     IdentifierSymbol identifier = ((IdentifierSymbol) right[0]);
                     Table.Row row = env.table.findRow(identifier.identifierName);
+                    if (row == null) throw new SyntaxException("标识符不存在：" + identifier.identifierName, identifier.left, identifier.right);
                     if (row.type == TableRowType.VARIABLE) {
                         env.codeList.pushCode(
                                 Instructions.STO,
@@ -343,6 +345,11 @@ public class SyntaxParser {
                     ((StatementSymbol) left).nextList = new int[] {};
                 }
         );
+        factor.addProduction(
+                new LiteralSymbol[]{ NUMBER },
+                (left, right, env) -> env.codeList.pushCode(Instructions.LIT, 0, ((NumberSymbol) right[0]).value)
+        );
+        factor.addProduction(new LiteralSymbol[]{ BRACKET_LEFT, expression, BRACKET_RIGHT });
         // endregion
 
         // region 条件语句
@@ -390,6 +397,7 @@ public class SyntaxParser {
                 (left, right, env) -> {
                     IdentifierSymbol identifier = ((IdentifierSymbol) right[1]);
                     Table.Row row = env.table.findRow(identifier.identifierName);
+                    if (row == null) throw new SyntaxException("标识符不存在：" + identifier.identifierName, identifier.left, identifier.right);
                     if (row.type == TableRowType.PROCEDURE) {
                         env.codeList.pushCode(
                                 Instructions.CAL,
@@ -415,6 +423,7 @@ public class SyntaxParser {
                     for (IdentifierSymbol identifier : env.identifiers) {
                         env.codeList.pushOpr(OperationTypes.READ);
                         Table.Row row = env.table.findRow(identifier.identifierName);
+                        if (row == null) throw new SyntaxException("标识符不存在：" + identifier.identifierName, identifier.left, identifier.right);
                         if (row.type == TableRowType.VARIABLE) {
                             env.codeList.pushCode(
                                     Instructions.STO,
@@ -439,6 +448,7 @@ public class SyntaxParser {
                 (left, right, env) -> {
                     for (IdentifierSymbol identifier : env.identifiers) {
                         Table.Row row = env.table.findRow(identifier.identifierName);
+                        if (row == null) throw new SyntaxException("标识符不存在：" + identifier.identifierName, identifier.left, identifier.right);
                         if (row.type == TableRowType.VARIABLE) {
                             env.codeList.pushCode(
                                     Instructions.LOD,
@@ -523,11 +533,11 @@ public class SyntaxParser {
             initializePredictor();
         }
         ParsingEnv env = new ParsingEnv();
+        int endPos = symbols.get(symbols.size() - 1).right;
+        symbols.add(new TerminalSymbol(SymbolIds.EOF, "代码结束", endPos, endPos));
         for (TerminalSymbol symbol : symbols) {
             predictor.go(symbol, env);
         }
-        int endPos = symbols.get(symbols.size() - 1).right;
-        predictor.go(new TerminalSymbol(SymbolIds.EOF, "代码结束", endPos, endPos), env);
         return new ParseResult(env);
     }
 }
