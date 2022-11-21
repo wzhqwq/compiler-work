@@ -204,8 +204,8 @@ public class SyntaxParser {
                 new LiteralSymbol[]{ VAR, identifiersPart1, SEMICOLON },
                 (left, right, env) -> {
                     env.codeList.pushCode(Instructions.INT, 0, env.identifiers.size() + 3);
-                    for (IdentifierSymbol identifier : env.identifiers) {
-                        env.table.addVariable(identifier.identifierName);
+                    for (int i = env.identifiers.size() - 1; i >= 0; i--) {
+                        env.table.addVariable(env.identifiers.get(i).identifierName);
                     }
                 }
         );
