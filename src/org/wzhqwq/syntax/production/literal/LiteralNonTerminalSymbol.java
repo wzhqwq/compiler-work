@@ -77,6 +77,7 @@ public class LiteralNonTerminalSymbol extends LiteralSymbol {
         System.out.println("\tProductions:");
         for (Production production : productions) {
             System.out.println("\t\t" + production);
+            System.out.println("\t\t\tSelect set: " + production.getSelectSet());
         }
         System.out.println();
     }

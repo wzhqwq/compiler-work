@@ -34,9 +34,9 @@ public class LL1Builder {
         // 迭代计算follow集
         deriveAllFollowSet();
 
-        for (LiteralNonTerminalSymbol symbol : nonTerminalSymbols) {
-            symbol.print();
-        }
+//        for (LiteralNonTerminalSymbol symbol : nonTerminalSymbols) {
+//            symbol.print();
+//        }
         Map<SymbolIds, Map<SymbolIds, Production> > table = new HashMap<>();
         for (LiteralNonTerminalSymbol symbol : nonTerminalSymbols) {
             Map<SymbolIds, Production> map = new HashMap<>();
@@ -82,6 +82,10 @@ public class LL1Builder {
             ASTNode node = stack.peek();
             LiteralSymbol nowSymbol = node.goForward(symbol);
             while (true) {
+                if (nowSymbol.getId() == SymbolIds.EPSILON) {
+                    node = popIsFinished(node, env);
+                    nowSymbol = node.goForward(symbol);
+                }
                 if (nowSymbol instanceof LiteralTerminalSymbol) {
                     if (nowSymbol.getId() != symbol.id) {
                         throw node.getMismatchException("没有意料到的符号: " + symbol.name);
@@ -92,18 +96,33 @@ public class LL1Builder {
                     LiteralNonTerminalSymbol nonTerminalTop = (LiteralNonTerminalSymbol) nowSymbol;
                     Production production = table.get(nonTerminalTop.getId()).get(symbol.id);
                     if (production == null) {
-                        throw node.getMismatchException(nonTerminalTop.getMismatchMessage(symbol.id));
+                        String message = nonTerminalTop.getMismatchMessage(symbol.id);
+                        if (message == null) {
+                            stack.pop();
+                            node = popIsFinished(node, env);
+                            nowSymbol = node.goForward(symbol);
+                            continue;
+                        }
+                        throw node.getMismatchException(message);
                     }
                     node = new ASTNode(production);
                     stack.push(node);
                     nowSymbol = node.goForward(symbol);
                 }
             }
+            popIsFinished(node, env);
+        }
+
+        private ASTNode popIsFinished(ASTNode node, ParsingEnv env) throws SyntaxException {
             while (node.isFinished() && !stack.isEmpty()) {
                 NonTerminalSymbol left = node.getLeftSymbol(env);
-                node = stack.pop();
-                node.addChild(left);
+                stack.pop();
+                if (!stack.isEmpty()) {
+                    node = stack.peek();
+                    node.addChild(left);
+                }
             }
+            return node;
         }
     }
 }

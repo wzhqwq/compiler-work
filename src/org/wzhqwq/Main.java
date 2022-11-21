@@ -74,7 +74,9 @@ public class Main {
         System.out.println("TABLE:");
         syntaxResult.table.forEach(System.out::println);
         System.out.println("\nCODE:");
-        syntaxResult.codeList.forEach(System.out::println);
+        for (int i = 0; i < syntaxResult.codeList.size(); i++) {
+            System.out.println(i + "\t" + syntaxResult.codeList.get(i));
+        }
         System.out.println("--------------------------------------------------");
     }
 }

@@ -60,8 +60,8 @@ public class Table {
         @Override
         public String toString() {
             return super.toString() +
-                    String.format(" | Level: %-5d | Address: %d", level, address) +
-                    "-".repeat(20);
+                    String.format(" | Level: %-5d | Address: %d\n", level, address) +
+                    "---".repeat(20);
         }
     }
 
