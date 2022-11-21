@@ -79,13 +79,10 @@ public class LL1Builder {
                 }
                 throw new SyntaxException("预期代码已经结束，存在程序外的代码", symbol.left, symbol.right);
             }
-            ASTNode node = stack.peek();
-            LiteralSymbol nowSymbol = node.goForward(symbol);
             while (true) {
-                if (nowSymbol.getId() == SymbolIds.EPSILON) {
-                    node = popIsFinished(node, env);
-                    nowSymbol = node.goForward(symbol);
-                }
+                ASTNode node = stack.peek();
+                LiteralSymbol nowSymbol = node.goForward(symbol);
+                if (nowSymbol.getId() == SymbolIds.EPSILON) continue;
                 if (nowSymbol instanceof LiteralTerminalSymbol) {
                     if (nowSymbol.getId() != symbol.id) {
                         throw node.getMismatchException("没有意料到的符号: " + symbol.name);
@@ -99,21 +96,19 @@ public class LL1Builder {
                         String message = nonTerminalTop.getMismatchMessage(symbol.id);
                         if (message == null) {
                             stack.pop();
-                            node = popIsFinished(node, env);
-                            nowSymbol = node.goForward(symbol);
+                            popIsFinished(env);
                             continue;
                         }
                         throw node.getMismatchException(message);
                     }
-                    node = new ASTNode(production);
-                    stack.push(node);
-                    nowSymbol = node.goForward(symbol);
+                    stack.push(new ASTNode(production));
                 }
             }
-            popIsFinished(node, env);
+            popIsFinished(env);
         }
 
-        private ASTNode popIsFinished(ASTNode node, ParsingEnv env) throws SyntaxException {
+        private void popIsFinished(ParsingEnv env) throws SyntaxException {
+            ASTNode node = stack.peek();
             while (node.isFinished() && !stack.isEmpty()) {
                 NonTerminalSymbol left = node.getLeftSymbol(env);
                 stack.pop();
@@ -122,7 +117,6 @@ public class LL1Builder {
                     node.addChild(left);
                 }
             }
-            return node;
         }
     }
 }
