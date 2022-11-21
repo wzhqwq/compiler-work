@@ -6,13 +6,13 @@ jumper -> EPSILON {
 }
 
 program -> jumper programBody DOT {
-  fill(jumper.jumpList, programBody.entryPoint)
+  no action
 }
-programBody -> constDeclaration varDeclaration proceduresPart1 M statement {
+programBody -> constDeclaration varDeclaration jumper proceduresPart1 M statement {
   fill(statement.nextList, getCodePtr())
+  fill(jumper.jumpList, M.nextPtr)
   pushCode(OPR, EXIT)
   leaveProcedure()
-  programBody.entryPoint = M.nextPtr
 }
 
 constDeclaration -> CONST constDefinitionsPart1 SEMICOLON | EPSILON {
@@ -43,7 +43,7 @@ identifiersPart2 -> COMMA identifiersPart1 | EPSILON {
 }
 
 proceduresPart1 -> procedureHead jumper programBody SEMICOLON proceduresPart2 | EPSILON {
-  fill(jumper.jumpList, programBody.entryPoint)
+  no action
 }
 proceduresPart2 -> proceduresPart1 | EPSILON {
   no action
@@ -68,8 +68,9 @@ relational -> RELATIONAL {
 }
 
 expression -> sign termsPart1 {
-  pushCode(LIT, 0, 0)
-  pushCode(OPR, sign.variant)
+  if sign.variant != NONE
+    pushCode(LIT, 0, 0)
+    pushCode(OPR, sign.variant)
 }
 sign -> ARITHMETIC_L1 {
   sign.variant = ARITHMETIC_L1.variant

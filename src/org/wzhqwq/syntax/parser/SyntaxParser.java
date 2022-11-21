@@ -78,12 +78,7 @@ public class SyntaxParser {
                 return null;
             }
         };
-        final LiteralNonTerminalSymbol programBody = new LiteralNonTerminalSymbol(SymbolIds.PROGRAM_BODY) {
-            @Override
-            public NonTerminalSymbol toNonTerminalSymbol() {
-                return new ProgramBodySymbol();
-            }
-        };
+        final LiteralNonTerminalSymbol programBody = new LiteralNonTerminalSymbol(SymbolIds.PROGRAM_BODY);
         final LiteralNonTerminalSymbol constDeclaration = new LiteralNonTerminalSymbol(SymbolIds.CONST_DECLARATION);
         final LiteralNonTerminalSymbol constDefinition = new LiteralNonTerminalSymbol(SymbolIds.CONST_DEFINITION);
         final LiteralNonTerminalSymbol constDefinitionsPart1 = new LiteralNonTerminalSymbol(SymbolIds.CONST_DEFINITIONS_1);
@@ -174,17 +169,18 @@ public class SyntaxParser {
                 new LiteralSymbol[]{ EPSILON },
                 (left, right, env) -> ((JumperSymbol) left).jumpList = env.codeList.pushPartialCode(Instructions.JMP)
         );
-        Production root = program.addProduction(
-                new LiteralSymbol[]{ jumper, programBody, DOT },
-                (left, right, env) -> env.codeList.fill(((JumperSymbol) right[0]).jumpList, ((ProgramBodySymbol) right[1]).entryPoint)
-        );
+        Production root = program.addProduction(new LiteralSymbol[]{ programBody, DOT });
         programBody.addProduction(
-                new LiteralSymbol[]{ constDeclaration, varDeclaration, proceduresPart1, M, statement },
+                new LiteralSymbol[]{ constDeclaration, varDeclaration, jumper, proceduresPart1, M, statement },
                 (left, right, env) -> {
-                    env.codeList.fill(((StatementSymbol) right[4]).nextList, env.codeList.getCodePtr());
+                    StatementSymbol S = (StatementSymbol) right[5];
+                    JumperSymbol J = (JumperSymbol) right[2];
+                    MSymbol M1 = (MSymbol) right[4];
+
+                    env.codeList.fill(S.nextList, env.codeList.getCodePtr());
+                    env.codeList.fill(J.jumpList, M1.nextPtr);
                     env.codeList.pushOpr(OperationTypes.EXIT);
                     env.table.leaveProcedure();
-                    ((ProgramBodySymbol) left).entryPoint = ((MSymbol) right[3]).nextPtr;
                 }
         );
 
@@ -226,10 +222,7 @@ public class SyntaxParser {
         // endregion
 
         // region 过程声明
-        proceduresPart1.addProduction(
-                new LiteralSymbol[]{ procedureHead, jumper, programBody, SEMICOLON, proceduresPart2 },
-                (left, right, env) -> env.codeList.fill(((JumperSymbol) right[1]).jumpList, ((ProgramBodySymbol) right[2]).entryPoint)
-        );
+        proceduresPart1.addProduction(new LiteralSymbol[]{ procedureHead, programBody, SEMICOLON, proceduresPart2 });
         proceduresPart1.addProduction(new LiteralSymbol[]{ EPSILON });
         proceduresPart2.addProduction(new LiteralSymbol[]{ proceduresPart1 });
         proceduresPart2.addProduction(new LiteralSymbol[]{ EPSILON });
@@ -273,8 +266,11 @@ public class SyntaxParser {
         expression.addProduction(
                 new LiteralSymbol[]{ sign, termsPart1 },
                 (left, right, env) -> {
-                    env.codeList.pushCode(Instructions.LIT, 0, 0);
-                    env.codeList.pushOpr(((OperationSymbol) right[0]).variant);
+                    OperationTypes op = ((OperationSymbol) right[0]).variant;
+                    if (op != OperationTypes.NONE) {
+                        env.codeList.pushCode(Instructions.LIT, 0, 0);
+                        env.codeList.pushOpr(op);
+                    }
                 }
         );
         sign.addProduction(
