@@ -1,14 +1,18 @@
 M -> EPSILON {
   M.nextPtr = getCodePtr()
 }
-
-program -> programBody DOT {
-  no action
+jumper -> EPSILON {
+  jumper.jumpList = pushCode(JMP)
 }
-programBody -> constDeclaration varDeclaration proceduresPart1 statement {
+
+program -> jumper programBody DOT {
+  fill(jumper.jumpList, programBody.entryPoint)
+}
+programBody -> constDeclaration varDeclaration proceduresPart1 M statement {
   fill(statement.nextList, getCodePtr())
   pushCode(OPR, EXIT)
   leaveProcedure()
+  programBody.entryPoint = M.nextPtr
 }
 
 constDeclaration -> CONST constDefinitionsPart1 SEMICOLON | EPSILON {
@@ -38,8 +42,8 @@ identifiersPart2 -> COMMA identifiersPart1 | EPSILON {
   no action
 }
 
-proceduresPart1 -> procedureHead programBody SEMICOLON proceduresPart2 | EPSILON {
-  no action
+proceduresPart1 -> procedureHead jumper programBody SEMICOLON proceduresPart2 | EPSILON {
+  fill(jumper.jumpList, programBody.entryPoint)
 }
 proceduresPart2 -> proceduresPart1 | EPSILON {
   no action
@@ -101,48 +105,47 @@ factor -> IDENTIFIER {
   no action
 }
 
-statement -> assignStatement | ifStatement | whileStatement | callStatement | readStatement | writeStatement | compoundStatement {
-  statement.nextList = ?.nextList
-} | EPSILON {
+statement -> EPSILON {
   statement.nextList = []
 }
 
-assignStatement -> IDENTIFIER ASSIGN expression {
+statement -> IDENTIFIER ASSIGN expression {
   row = findRow(IDENTIFIER.name)
   if row.type == VARIABLE   pushCode(STO, getLevel() - row.level, row.address)
   else                      throw error
-  assignStatement.nextList = []
+  statement.nextList = []
 }
-ifStatement -> IF condition THEN M statement {
+statement -> IF condition THEN M statement {
   fill(condition.trueList, M.nextPtr)
-  ifStatement.nextList = merge(condition.falseList, statement.nextList)
+  statement.nextList = merge(condition.falseList, statement.nextList)
 }
-whileStatement -> WHILE M1 condition DO M2 statement {
+statement -> WHILE M1 condition DO M2 statement {
   fill(condition.trueList, M2.nextPtr)
   fill(statement.nextList, M1.nextPtr)
-  whileStatement.nextList = merge(condition.falseList, pushCode(JMP))
+  statement.nextList = condition.falseList
+  pushCode(JMP, 0, M1.nextPtr)
 }
-callStatement -> CALL IDENTIFIER {
+statement -> CALL IDENTIFIER {
   row = findRow(IDENTIFIER.name)
   if row.type == PROCEDURE  pushCode(CAL, getLevel(), row.address)
   else                      throw error
-  callStatement.nextList = []
+  statement.nextList = []
 }
-readStatement -> READ BRACKET_LEFT identifiersPart1 BRACKET_RIGHT {
+statement -> READ BRACKET_LEFT identifiersPart1 BRACKET_RIGHT {
   for identifier in identifiers
     pushCode(OPR, READ)
     row = findRow(identifier.name)
     if row.type == VARIABLE   pushCode(STO, getLevel() - row.level, row.address)
     else                      throw error
-  readStatement.nextList = []
+  statement.nextList = []
 }
-writeStatement -> WRITE BRACKET_LEFT identifiersPart1 BRACKET_RIGHT {
+statement -> WRITE BRACKET_LEFT identifiersPart1 BRACKET_RIGHT {
   for identifier in identifiers
     row = findRow(identifier.name)
     if row.type == VARIABLE   pushCode(LOD, getLevel() - row.level, row.address)
     else                      throw error
     pushCode(OPR, WRITE)
-  writeStatement.nextList = []
+  statement.nextList = []
 }
 
 statementsPart1 -> statement statementsPart2 {
@@ -159,6 +162,6 @@ statementsPart2 -> SEMICOLON M statementsPart1 {
   statementsPart2.nextPtr = -1
   statementsPart2.nextList = []
 }
-compoundStatement -> BEGIN statementsPart1 END {
-  compoundStatement.nextList = statementsPart1.nextList
+statement -> BEGIN statementsPart1 END {
+  statement.nextList = statementsPart1.nextList
 }

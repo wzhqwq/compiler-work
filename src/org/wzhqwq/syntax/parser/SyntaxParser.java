@@ -63,6 +63,12 @@ public class SyntaxParser {
                 return new MSymbol();
             }
         };
+        final LiteralNonTerminalSymbol jumper = new LiteralNonTerminalSymbol(SymbolIds.JUMPER) {
+            @Override
+            public NonTerminalSymbol toNonTerminalSymbol() {
+                return new JumperSymbol();
+            }
+        };
         final LiteralNonTerminalSymbol program = new LiteralNonTerminalSymbol(SymbolIds.PROGRAM) {
             @Override
             public String getMismatchMessage(SymbolIds symbolId) {
@@ -72,7 +78,12 @@ public class SyntaxParser {
                 return null;
             }
         };
-        final LiteralNonTerminalSymbol programBody = new LiteralNonTerminalSymbol(SymbolIds.PROGRAM_BODY);
+        final LiteralNonTerminalSymbol programBody = new LiteralNonTerminalSymbol(SymbolIds.PROGRAM_BODY) {
+            @Override
+            public NonTerminalSymbol toNonTerminalSymbol() {
+                return new ProgramBodySymbol();
+            }
+        };
         final LiteralNonTerminalSymbol constDeclaration = new LiteralNonTerminalSymbol(SymbolIds.CONST_DECLARATION);
         final LiteralNonTerminalSymbol constDefinition = new LiteralNonTerminalSymbol(SymbolIds.CONST_DEFINITION);
         final LiteralNonTerminalSymbol constDefinitionsPart1 = new LiteralNonTerminalSymbol(SymbolIds.CONST_DEFINITIONS_1);
@@ -91,6 +102,11 @@ public class SyntaxParser {
             public NonTerminalSymbol toNonTerminalSymbol() {
                 return new ConditionSymbol();
             }
+
+            @Override
+            public String getMismatchMessage(SymbolIds symbolId) {
+                return symbolId.toString() + "不属于条件的开头";
+            }
         };
         final LiteralNonTerminalSymbol relational = new LiteralNonTerminalSymbol(SymbolIds.RELATIONAL) {
             @Override
@@ -98,7 +114,12 @@ public class SyntaxParser {
                 return new OperationSymbol(SymbolIds.RELATIONAL);
             }
         };
-        final LiteralNonTerminalSymbol expression = new LiteralNonTerminalSymbol(SymbolIds.EXPRESSION);
+        final LiteralNonTerminalSymbol expression = new LiteralNonTerminalSymbol(SymbolIds.EXPRESSION) {
+            @Override
+            public String getMismatchMessage(SymbolIds symbolId) {
+                return symbolId.toString() + "不属于表达式的开头";
+            }
+        };
         final LiteralNonTerminalSymbol sign = new LiteralNonTerminalSymbol(SymbolIds.SIGN) {
             @Override
             public NonTerminalSymbol toNonTerminalSymbol() {
@@ -118,59 +139,28 @@ public class SyntaxParser {
             public NonTerminalSymbol toNonTerminalSymbol() {
                 return new StatementSymbol(SymbolIds.STATEMENT);
             }
+
+            @Override
+            public String getMismatchMessage(SymbolIds symbolId) {
+                return symbolId.toString() + "不属于语句的开头";
+            }
         };
         final LiteralNonTerminalSymbol statementsPart1 = new LiteralNonTerminalSymbol(SymbolIds.STATEMENTS_1) {
             @Override
             public NonTerminalSymbol toNonTerminalSymbol() {
                 return new StatementSymbol(SymbolIds.STATEMENTS_1);
             }
+
+            @Override
+            public String getMismatchMessage(SymbolIds symbolId) {
+                if (symbolId == SymbolIds.END_KEYWORD) return "复合语句中最后一条语句后不能有分号";
+                return symbolId.toString() + "不属于语句的开头";
+            }
         };
         final LiteralNonTerminalSymbol statementsPart2 = new LiteralNonTerminalSymbol(SymbolIds.STATEMENTS_2) {
             @Override
             public NonTerminalSymbol toNonTerminalSymbol() {
                 return new StatementExSymbol(SymbolIds.STATEMENTS_2);
-            }
-        };
-        final LiteralNonTerminalSymbol assignStatement = new LiteralNonTerminalSymbol(SymbolIds.ASSIGN_STATEMENT) {
-            @Override
-            public NonTerminalSymbol toNonTerminalSymbol() {
-                return new StatementSymbol(SymbolIds.ASSIGN_STATEMENT);
-            }
-        };
-        final LiteralNonTerminalSymbol compoundStatement = new LiteralNonTerminalSymbol(SymbolIds.COMPOUND_STATEMENT) {
-            @Override
-            public NonTerminalSymbol toNonTerminalSymbol() {
-                return new StatementSymbol(SymbolIds.COMPOUND_STATEMENT);
-            }
-        };
-        final LiteralNonTerminalSymbol ifStatement = new LiteralNonTerminalSymbol(SymbolIds.IF_STATEMENT) {
-            @Override
-            public NonTerminalSymbol toNonTerminalSymbol() {
-                return new StatementSymbol(SymbolIds.IF_STATEMENT);
-            }
-        };
-        final LiteralNonTerminalSymbol whileStatement = new LiteralNonTerminalSymbol(SymbolIds.WHILE_STATEMENT) {
-            @Override
-            public NonTerminalSymbol toNonTerminalSymbol() {
-                return new StatementSymbol(SymbolIds.WHILE_STATEMENT);
-            }
-        };
-        final LiteralNonTerminalSymbol callStatement = new LiteralNonTerminalSymbol(SymbolIds.CALL_STATEMENT) {
-            @Override
-            public NonTerminalSymbol toNonTerminalSymbol() {
-                return new StatementSymbol(SymbolIds.CALL_STATEMENT);
-            }
-        };
-        final LiteralNonTerminalSymbol readStatement = new LiteralNonTerminalSymbol(SymbolIds.READ_STATEMENT) {
-            @Override
-            public NonTerminalSymbol toNonTerminalSymbol() {
-                return new StatementSymbol(SymbolIds.READ_STATEMENT);
-            }
-        };
-        final LiteralNonTerminalSymbol writeStatement = new LiteralNonTerminalSymbol(SymbolIds.WRITE_STATEMENT) {
-            @Override
-            public NonTerminalSymbol toNonTerminalSymbol() {
-                return new StatementSymbol(SymbolIds.WRITE_STATEMENT);
             }
         };
         // endregion
@@ -180,13 +170,21 @@ public class SyntaxParser {
                 new LiteralSymbol[]{ EPSILON },
                 (left, right, env) -> ((MSymbol) left).nextPtr = env.codeList.getCodePtr()
         );
-        Production root = program.addProduction(new LiteralSymbol[]{ programBody, DOT });
+        jumper.addProduction(
+                new LiteralSymbol[]{ EPSILON },
+                (left, right, env) -> ((JumperSymbol) left).jumpList = env.codeList.pushPartialCode(Instructions.JMP)
+        );
+        Production root = program.addProduction(
+                new LiteralSymbol[]{ jumper, programBody, DOT },
+                (left, right, env) -> env.codeList.fill(((JumperSymbol) right[0]).jumpList, ((ProgramBodySymbol) right[1]).entryPoint)
+        );
         programBody.addProduction(
-                new LiteralSymbol[]{ constDeclaration, varDeclaration, proceduresPart1, statement },
+                new LiteralSymbol[]{ constDeclaration, varDeclaration, proceduresPart1, M, statement },
                 (left, right, env) -> {
-                    env.codeList.fill(((StatementSymbol) right[3]).nextList, env.codeList.getCodePtr());
+                    env.codeList.fill(((StatementSymbol) right[4]).nextList, env.codeList.getCodePtr());
                     env.codeList.pushOpr(OperationTypes.EXIT);
                     env.table.leaveProcedure();
+                    ((ProgramBodySymbol) left).entryPoint = ((MSymbol) right[3]).nextPtr;
                 }
         );
 
@@ -228,7 +226,10 @@ public class SyntaxParser {
         // endregion
 
         // region 过程声明
-        proceduresPart1.addProduction(new LiteralSymbol[]{ procedureHead, programBody, SEMICOLON, proceduresPart2 });
+        proceduresPart1.addProduction(
+                new LiteralSymbol[]{ procedureHead, jumper, programBody, SEMICOLON, proceduresPart2 },
+                (left, right, env) -> env.codeList.fill(((JumperSymbol) right[1]).jumpList, ((ProgramBodySymbol) right[2]).entryPoint)
+        );
         proceduresPart1.addProduction(new LiteralSymbol[]{ EPSILON });
         proceduresPart2.addProduction(new LiteralSymbol[]{ proceduresPart1 });
         proceduresPart2.addProduction(new LiteralSymbol[]{ EPSILON });
@@ -319,14 +320,15 @@ public class SyntaxParser {
                     }
                 }
         );
+        factor.addProduction(
+                new LiteralSymbol[]{ NUMBER },
+                (left, right, env) -> env.codeList.pushCode(Instructions.LIT, 0, ((NumberSymbol) right[0]).value)
+        );
+        factor.addProduction(new LiteralSymbol[]{ BRACKET_LEFT, expression, BRACKET_RIGHT });
         // endregion
 
-        // region 赋值语句
+        // region 简单语句
         statement.addProduction(
-                new LiteralSymbol[]{ assignStatement },
-                (left, right, env) -> ((StatementSymbol) left).nextList = ((StatementSymbol) right[0]).nextList
-        );
-        assignStatement.addProduction(
                 new LiteralSymbol[]{ IDENTIFIER, ASSIGN, expression },
                 (left, right, env) -> {
                     IdentifierSymbol identifier = ((IdentifierSymbol) right[0]);
@@ -345,19 +347,7 @@ public class SyntaxParser {
                     ((StatementSymbol) left).nextList = new int[] {};
                 }
         );
-        factor.addProduction(
-                new LiteralSymbol[]{ NUMBER },
-                (left, right, env) -> env.codeList.pushCode(Instructions.LIT, 0, ((NumberSymbol) right[0]).value)
-        );
-        factor.addProduction(new LiteralSymbol[]{ BRACKET_LEFT, expression, BRACKET_RIGHT });
-        // endregion
-
-        // region 条件语句
         statement.addProduction(
-                new LiteralSymbol[]{ ifStatement },
-                (left, right, env) -> ((StatementSymbol) left).nextList = ((StatementSymbol) right[0]).nextList
-        );
-        ifStatement.addProduction(
                 new LiteralSymbol[]{ IF, condition, THEN, M, statement },
                 (left, right, env) -> {
                     env.codeList.fill(((ConditionSymbol) right[1]).trueList, ((MSymbol) right[3]).nextPtr);
@@ -367,32 +357,21 @@ public class SyntaxParser {
                     );
                 }
         );
-        // endregion
-
-        // region 当型语句
         statement.addProduction(
-                new LiteralSymbol[]{ whileStatement },
-                (left, right, env) -> ((StatementSymbol) left).nextList = ((StatementSymbol) right[0]).nextList
-        );
-        whileStatement.addProduction(
                 new LiteralSymbol[]{ WHILE, M, condition, DO, M, statement },
                 (left, right, env) -> {
-                    env.codeList.fill(((ConditionSymbol) right[1]).trueList, ((MSymbol) right[4]).nextPtr);
-                    env.codeList.fill(((StatementSymbol) right[5]).nextList, ((MSymbol) right[1]).nextPtr);
-                    ((StatementSymbol) left).nextList = env.codeList.merge(
-                            ((ConditionSymbol) right[2]).falseList,
-                            env.codeList.pushPartialCode(Instructions.JMP)
-                    );
+                    MSymbol M1 = ((MSymbol) right[1]);
+                    MSymbol M2 = ((MSymbol) right[4]);
+                    ConditionSymbol C = ((ConditionSymbol) right[2]);
+                    StatementSymbol S = ((StatementSymbol) right[5]);
+
+                    env.codeList.fill(S.nextList, M1.nextPtr);
+                    env.codeList.fill(C.trueList, M2.nextPtr);
+                    ((StatementSymbol) left).nextList = C.falseList;
+                    env.codeList.pushCode(Instructions.JMP, 0, M1.nextPtr);
                 }
         );
-        // endregion
-
-        // region 过程调用语句
         statement.addProduction(
-                new LiteralSymbol[]{ callStatement },
-                (left, right, env) -> ((StatementSymbol) left).nextList = ((StatementSymbol) right[0]).nextList
-        );
-        callStatement.addProduction(
                 new LiteralSymbol[]{ CALL, IDENTIFIER },
                 (left, right, env) -> {
                     IdentifierSymbol identifier = ((IdentifierSymbol) right[1]);
@@ -402,22 +381,16 @@ public class SyntaxParser {
                         env.codeList.pushCode(
                                 Instructions.CAL,
                                 env.table.getLevel(),
-                                ((Table.VariableRow) row).address
+                                ((Table.ProcedureRow) row).address
                         );
                     }
                     else {
                         throw new SyntaxException("call后应为过程名", identifier.left, identifier.right);
                     }
+                    ((StatementSymbol) left).nextList = new int[]{};
                 }
         );
-        // endregion
-
-        // region 读写语句
         statement.addProduction(
-                new LiteralSymbol[]{ readStatement },
-                (left, right, env) -> ((StatementSymbol) left).nextList = ((StatementSymbol) right[0]).nextList
-        );
-        readStatement.addProduction(
                 new LiteralSymbol[]{ READ, BRACKET_LEFT, identifiersPart1, BRACKET_RIGHT },
                 (left, right, env) -> {
                     for (IdentifierSymbol identifier : env.identifiers) {
@@ -432,18 +405,13 @@ public class SyntaxParser {
                             );
                         }
                         else {
-                            throw new SyntaxException("赋值左值应为变量", identifier.left, identifier.right);
+                            throw new SyntaxException("参数表内应是变量", identifier.left, identifier.right);
                         }
                     }
                     ((StatementSymbol) left).nextList = new int[] {};
                 }
         );
-
         statement.addProduction(
-                new LiteralSymbol[]{ writeStatement },
-                (left, right, env) -> ((StatementSymbol) left).nextList = ((StatementSymbol) right[0]).nextList
-        );
-        writeStatement.addProduction(
                 new LiteralSymbol[]{ WRITE, BRACKET_LEFT, identifiersPart1, BRACKET_RIGHT },
                 (left, right, env) -> {
                     for (IdentifierSymbol identifier : env.identifiers) {
@@ -457,12 +425,16 @@ public class SyntaxParser {
                             );
                         }
                         else {
-                            throw new SyntaxException("赋值左值应为变量", identifier.left, identifier.right);
+                            throw new SyntaxException("参数表内应是变量", identifier.left, identifier.right);
                         }
                         env.codeList.pushOpr(OperationTypes.WRITE);
                     }
                     ((StatementSymbol) left).nextList = new int[] {};
                 }
+        );
+        statement.addProduction(
+                new LiteralSymbol[]{ EPSILON },
+                (left, right, env) -> ((StatementSymbol) left).nextList = new int[] {}
         );
         // endregion
 
@@ -500,21 +472,16 @@ public class SyntaxParser {
                 }
         );
         statement.addProduction(
-                new LiteralSymbol[]{ compoundStatement },
-                (left, right, env) -> ((StatementSymbol) left).nextList = ((StatementSymbol) right[0]).nextList
-        );
-        compoundStatement.addProduction(
                 new LiteralSymbol[]{ BEGIN, statementsPart1, END },
                 (left, right, env) -> ((StatementSymbol) left).nextList = ((StatementSymbol) right[1]).nextList
         );
         // endregion
 
         predictor = new LL1Builder(root, new LiteralNonTerminalSymbol[]{
-                M, program, programBody, constDeclaration, constDefinitionsPart1, constDefinitionsPart2,
+                M, jumper, program, programBody, constDeclaration, constDefinitionsPart1, constDefinitionsPart2,
                 constDefinition, varDeclaration, identifiersPart1, identifiersPart2, proceduresPart1, proceduresPart2,
                 procedureHead, condition, relational, expression, sign, termsPart1, termsPart2, term, factorsPart,
-                factor, statement, assignStatement, ifStatement, whileStatement, callStatement, readStatement,
-                writeStatement, statementsPart1, statementsPart2, compoundStatement
+                factor, statement, statementsPart1, statementsPart2
         }).build();
     }
 
