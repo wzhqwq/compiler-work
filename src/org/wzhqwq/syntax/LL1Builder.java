@@ -74,15 +74,16 @@ public class LL1Builder {
 
         public void go(TerminalSymbol symbol, ParsingEnv env) throws SyntaxException {
             if (stack.isEmpty()) {
-                if (symbol.id == SymbolIds.EOF) {
-                    return;
-                }
+                if (symbol.id == SymbolIds.EOF) return;
                 throw new SyntaxException("预期代码已经结束，存在程序外的代码", symbol.left, symbol.right);
             }
             while (true) {
                 ASTNode node = stack.peek();
                 LiteralSymbol nowSymbol = node.goForward(symbol);
-                if (nowSymbol.getId() == SymbolIds.EPSILON) continue;
+                if (nowSymbol.getId() == SymbolIds.EPSILON) {
+                    popIsFinished(env);
+                    continue;
+                }
                 if (nowSymbol instanceof LiteralTerminalSymbol) {
                     if (nowSymbol.getId() != symbol.id) {
                         throw node.getMismatchException("没有意料到的符号: " + symbol.name);

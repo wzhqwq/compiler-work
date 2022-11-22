@@ -203,7 +203,7 @@ public class SyntaxParser {
         varDeclaration.addProduction(
                 new LiteralSymbol[]{ VAR, identifiersPart1, SEMICOLON },
                 (left, right, env) -> {
-                    env.codeList.pushCode(Instructions.INT, 0, env.identifiers.size() + 3);
+                    env.codeList.pushCode(Instructions.INT, 0, env.identifiers.size() + (env.table.getLevel() == 0 ? 0 : 3));
                     for (int i = env.identifiers.size() - 1; i >= 0; i--) {
                         env.table.addVariable(env.identifiers.get(i).identifierName);
                     }
@@ -211,7 +211,7 @@ public class SyntaxParser {
         );
         varDeclaration.addProduction(
                 new LiteralSymbol[]{ EPSILON },
-                (left, right, env) -> env.codeList.pushCode(Instructions.INT, 0, 3)
+                (left, right, env) -> env.codeList.pushCode(Instructions.INT, 0, env.table.getLevel() == 0 ? 0 : 3)
         );
         identifiersPart1.addProduction(
                 new LiteralSymbol[]{ IDENTIFIER, identifiersPart2 },
