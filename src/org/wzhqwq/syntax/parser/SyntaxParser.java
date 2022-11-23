@@ -207,6 +207,7 @@ public class SyntaxParser {
                     for (int i = env.identifiers.size() - 1; i >= 0; i--) {
                         env.table.addVariable(env.identifiers.get(i).identifierName);
                     }
+                    env.identifiers.clear();
                 }
         );
         varDeclaration.addProduction(
@@ -404,6 +405,7 @@ public class SyntaxParser {
                             throw new SyntaxException("参数表内应是变量", identifier.left, identifier.right);
                         }
                     }
+                    env.identifiers.clear();
                     ((StatementSymbol) left).nextList = new int[] {};
                 }
         );
@@ -425,6 +427,7 @@ public class SyntaxParser {
                         }
                         env.codeList.pushOpr(OperationTypes.WRITE);
                     }
+                    env.identifiers.clear();
                     ((StatementSymbol) left).nextList = new int[] {};
                 }
         );
