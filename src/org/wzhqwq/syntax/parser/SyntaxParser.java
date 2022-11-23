@@ -375,9 +375,12 @@ public class SyntaxParser {
                     Table.Row row = env.table.findRow(identifier.identifierName);
                     if (row == null) throw new SyntaxException("标识符不存在：" + identifier.identifierName, identifier.left, identifier.right);
                     if (row.type == TableRowType.PROCEDURE) {
+                        if (env.table.getLevel() - ((Table.ProcedureRow) row).level < -1) {
+                            throw new SyntaxException("只能调用自身或直接子过程", identifier.left, identifier.right);
+                        }
                         env.codeList.pushCode(
                                 Instructions.CAL,
-                                env.table.getLevel(),
+                                env.table.getLevel() - ((Table.ProcedureRow) row).level,
                                 ((Table.ProcedureRow) row).address
                         );
                     }
