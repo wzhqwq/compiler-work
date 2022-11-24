@@ -7,6 +7,7 @@ import org.wzhqwq.lexical.LexicalParser;
 import org.wzhqwq.enums.Symbol;
 import org.wzhqwq.syntax.parser.SyntaxParser;
 import org.wzhqwq.util.CodeBuffer;
+import org.wzhqwq.vm.VirtualMachine;
 
 import java.util.Scanner;
 
@@ -18,8 +19,9 @@ public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         StringBuilder code = new StringBuilder();
-        while (scanner.hasNext()) {
-            code.append(scanner.nextLine()).append('\n');
+        String line;
+        while (!(line = scanner.nextLine()).equals("$")) {
+            code.append(line).append('\n');
         }
         codeBuffer = new CodeBuffer(code.toString());
 
@@ -36,6 +38,8 @@ public class Main {
             }
             e.printStackTrace();
         }
+
+        run();
     }
 
     private static void GETSYM() throws LexicalException {
@@ -78,5 +82,12 @@ public class Main {
             System.out.println(i + "\t" + syntaxResult.codeList.get(i));
         }
         System.out.println("--------------------------------------------------");
+    }
+
+    private static void run() {
+        System.out.println("--------------------代码开始运行--------------------");
+        VirtualMachine vm = new VirtualMachine(syntaxResult.codeList);
+        vm.run();
+        System.out.println("--------------------代码结束运行--------------------");
     }
 }

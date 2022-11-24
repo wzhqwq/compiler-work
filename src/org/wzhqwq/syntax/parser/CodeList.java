@@ -7,9 +7,9 @@ import java.util.List;
 
 public class CodeList {
     public static class Code {
-        Instructions instruction;
-        int level;
-        int address;
+        public final Instructions instruction;
+        public final int level;
+        public int address;
 
         public Code(Instructions instruction, int level, int address) {
             this.instruction = instruction;

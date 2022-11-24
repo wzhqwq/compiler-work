@@ -18,10 +18,10 @@ begin
         m := n;
         n := r
     end;
-    if m > n then
     begin
         r:=1;
         call gcd;
         write(m)
     end
 end.
+$
