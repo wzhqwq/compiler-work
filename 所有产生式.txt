@@ -128,7 +128,7 @@ statement -> WHILE M1 condition DO M2 statement {
 }
 statement -> CALL IDENTIFIER {
   row = findRow(IDENTIFIER.name)
-  if row.type == PROCEDURE  pushCode(CAL, getLevel(), row.address)
+  if row.type == PROCEDURE  pushCode(CAL, getLevel() - row.level, row.address)
   else                      throw error
   statement.nextList = []
 }

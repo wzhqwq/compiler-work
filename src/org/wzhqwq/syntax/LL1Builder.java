@@ -81,7 +81,7 @@ public class LL1Builder {
                 ASTNode node = stack.peek();
                 LiteralSymbol nowSymbol = node.goForward(symbol);
                 if (nowSymbol.getId() == SymbolIds.EPSILON) {
-                    popIsFinished(env);
+                    popIsFinished(env, false);
                     continue;
                 }
                 if (nowSymbol instanceof LiteralTerminalSymbol) {
@@ -97,7 +97,7 @@ public class LL1Builder {
                         String message = nonTerminalTop.getMismatchMessage(symbol.id);
                         if (message == null) {
                             stack.pop();
-                            popIsFinished(env);
+                            popIsFinished(env, true);
                             continue;
                         }
                         throw node.getMismatchException(message);
@@ -105,17 +105,23 @@ public class LL1Builder {
                     stack.push(new ASTNode(production));
                 }
             }
-            popIsFinished(env);
+            popIsFinished(env, false);
         }
 
-        private void popIsFinished(ParsingEnv env) throws SyntaxException {
+        private void popIsFinished(ParsingEnv env, boolean panic) throws SyntaxException {
             ASTNode node = stack.peek();
             while (node.isFinished() && !stack.isEmpty()) {
-                NonTerminalSymbol left = node.getLeftSymbol(env);
-                stack.pop();
-                if (!stack.isEmpty()) {
+                if (panic) {
+                    stack.pop();
                     node = stack.peek();
-                    node.addChild(left);
+                }
+                else {
+                    NonTerminalSymbol left = node.getLeftSymbol(env);
+                    stack.pop();
+                    if (!stack.isEmpty()) {
+                        node = stack.peek();
+                        node.addChild(left);
+                    }
                 }
             }
         }
